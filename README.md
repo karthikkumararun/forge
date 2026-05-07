@@ -1,5 +1,9 @@
 # Forge — Supercharged Git for VS Code
 
+[![CI](https://github.com/karthikkumararun/forge/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/karthikkumararun/forge/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/karthikkumararun/forge/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/karthikkumararun/forge/actions/workflows/codeql.yml)
+[![Release](https://img.shields.io/github/v/release/karthikkumararun/forge?logo=github&label=release)](https://github.com/karthikkumararun/forge/releases/latest)
+
 JetBrains-quality merge conflict resolution, shelving, and git graph — as a
 VS Code extension. Open source, MIT licensed. Works in VS Code, Cursor,
 Windsurf, and any VS Code fork.

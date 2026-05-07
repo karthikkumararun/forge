@@ -7,7 +7,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/forge-git/forge"
+    "url": "https://github.com/karthikkumararun/forge"
   },
   "engines": {
     "vscode": "^1.85.0",
