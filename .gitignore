@@ -1,0 +1,9 @@
+node_modules/
+dist/
+*.vsix
+.forge/
+.DS_Store
+*.log
+package-lock.json
+launch.json
+task.json

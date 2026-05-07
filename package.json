@@ -1,0 +1,129 @@
+{
+  "name": "forge",
+  "displayName": "Forge",
+  "description": "Supercharged git for VS Code — JetBrains-quality merge editor, shelving, and git graph",
+  "version": "0.1.0",
+  "publisher": "forge-git",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/forge-git/forge"
+  },
+  "engines": {
+    "vscode": "^1.85.0",
+    "node": ">=18"
+  },
+  "categories": ["SCM Providers", "Other"],
+  "keywords": ["git", "merge", "shelve", "graph", "diff"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      { "command": "forge.shelveChanges", "title": "Forge: Shelve Current Changes", "icon": "$(archive)" },
+      { "command": "forge.shelvePartial", "title": "Forge: Shelve Selected Files…", "icon": "$(checklist)" },
+      { "command": "forge.unshelveChanges", "title": "Forge: Unshelve", "icon": "$(arrow-down)" },
+      { "command": "forge.deleteShelve", "title": "Forge: Delete Shelf", "icon": "$(trash)" },
+      { "command": "forge.previewShelve", "title": "Forge: Preview Shelf", "icon": "$(eye)" },
+      { "command": "forge.refreshShelves", "title": "Forge: Refresh Shelves", "icon": "$(refresh)" },
+      { "command": "forge.openMergeEditor", "title": "Forge: Open Merge Editor", "icon": "$(git-merge)" },
+      { "command": "forge.openGitGraph", "title": "Forge: Open Git Graph", "icon": "$(git-branch)" },
+      { "command": "forge.mergeEditor.nextConflict", "title": "Forge: Next Conflict" },
+      { "command": "forge.mergeEditor.prevConflict", "title": "Forge: Previous Conflict" },
+      { "command": "forge.mergeEditor.acceptYours", "title": "Forge: Accept Yours" },
+      { "command": "forge.mergeEditor.acceptTheirs", "title": "Forge: Accept Theirs" },
+      { "command": "forge.mergeEditor.save", "title": "Forge: Save Merge Result" },
+      { "command": "forge.toggleBlame", "title": "Forge: Toggle Inline Blame" },
+      { "command": "forge.startInteractiveRebase", "title": "Forge: Interactive Rebase…" },
+      { "command": "forge.abortRebase", "title": "Forge: Abort Rebase" },
+      { "command": "forge.shelves.cloudPush", "title": "Forge: Push Shelves to Cloud (Gist)" },
+      { "command": "forge.shelves.cloudPull", "title": "Forge: Pull Shelves from Cloud (Gist)" },
+      { "command": "forge.shelves.setCloudToken", "title": "Forge: Set Gist Token" }
+    ],
+    "keybindings": [
+      { "command": "forge.mergeEditor.nextConflict", "key": "alt+down", "when": "activeWebviewPanelId == 'forge.mergeEditor'" },
+      { "command": "forge.mergeEditor.prevConflict", "key": "alt+up", "when": "activeWebviewPanelId == 'forge.mergeEditor'" },
+      { "command": "forge.mergeEditor.acceptYours", "key": "alt+left", "when": "activeWebviewPanelId == 'forge.mergeEditor'" },
+      { "command": "forge.mergeEditor.acceptTheirs", "key": "alt+right", "when": "activeWebviewPanelId == 'forge.mergeEditor'" },
+      { "command": "forge.mergeEditor.save", "key": "ctrl+s", "mac": "cmd+s", "when": "activeWebviewPanelId == 'forge.mergeEditor'" }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        { "id": "forge", "title": "Forge", "icon": "media/forge-icon.svg" }
+      ]
+    },
+    "views": {
+      "forge": [
+        { "id": "forge-shelves", "name": "Shelves", "icon": "$(archive)", "contextualTitle": "Forge Shelves" }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        { "command": "forge.shelveChanges", "when": "view == forge-shelves", "group": "navigation" },
+        { "command": "forge.shelvePartial", "when": "view == forge-shelves", "group": "navigation" },
+        { "command": "forge.refreshShelves", "when": "view == forge-shelves", "group": "navigation" }
+      ],
+      "view/item/context": [
+        { "command": "forge.unshelveChanges", "when": "viewItem == shelf", "group": "inline" },
+        { "command": "forge.previewShelve", "when": "viewItem == shelf", "group": "inline" },
+        { "command": "forge.deleteShelve", "when": "viewItem == shelf", "group": "inline" }
+      ],
+      "editor/title": [
+        { "command": "forge.openMergeEditor", "when": "resourceScheme == file", "group": "navigation" }
+      ]
+    },
+    "configuration": {
+      "title": "Forge",
+      "properties": {
+        "forge.shelves.autoGitignore": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically add .forge/ to .gitignore"
+        },
+        "forge.mergeEditor.useSyntaxAwareDiff": {
+          "type": "boolean",
+          "default": true,
+          "description": "Use Tree-sitter AST-aware diffing in the merge editor (more accurate, slightly slower)"
+        },
+        "forge.gitGraph.maxCommits": {
+          "type": "number",
+          "default": 500,
+          "description": "Maximum number of commits to load in the git graph"
+        },
+        "forge.blame.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show inline blame on the current line"
+        },
+        "forge.shelves.cloudGistId": {
+          "type": "string",
+          "default": "",
+          "description": "GitHub gist ID used for shelving cloud sync (set after first push)"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.js",
+    "watch": "node esbuild.js --watch",
+    "package": "vsce package",
+    "lint": "eslint src --ext ts,tsx",
+    "test": "node ./dist/test/runTest.js"
+  },
+  "dependencies": {
+    "simple-git": "^3.22.0",
+    "diff-match-patch": "^1.0.5"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "@types/d3": "^7.0.0",
+    "@types/diff-match-patch": "^1.0.36",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "d3": "^7.9.0",
+    "esbuild": "^0.20.0",
+    "typescript": "^5.3.0"
+  }
+}
