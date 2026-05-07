@@ -4,6 +4,11 @@ All notable changes to Forge are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/) and the project uses
 [semantic versioning](https://semver.org/).
 
+## [0.1.1] - 2026-05-06
+
+### Fixed
+- Marketplace icon (added PNG; SVG is not supported by the VS Code Marketplace).
+
 ## [0.1.0] - 2026-05-06
 
 ### Added

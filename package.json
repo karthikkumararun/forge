@@ -2,9 +2,10 @@
   "name": "forge-git",
   "displayName": "Forge — Supercharged Git",
   "description": "Supercharged git for VS Code — JetBrains-quality merge editor, shelving, and git graph",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "KarthikKumarArun",
   "license": "MIT",
+  "icon": "media/forge-icon.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/karthikkumararun/forge"

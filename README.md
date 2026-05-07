@@ -3,6 +3,8 @@
 [![CI](https://github.com/karthikkumararun/forge/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/karthikkumararun/forge/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/karthikkumararun/forge/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/karthikkumararun/forge/actions/workflows/codeql.yml)
 [![Release](https://img.shields.io/github/v/release/karthikkumararun/forge?logo=github&label=release)](https://github.com/karthikkumararun/forge/releases/latest)
+[![Marketplace](https://img.shields.io/visual-studio-marketplace/v/KarthikKumarArun.forge-git?logo=visualstudiocode&label=marketplace)](https://marketplace.visualstudio.com/items?itemName=KarthikKumarArun.forge-git)
+[![Installs](https://img.shields.io/visual-studio-marketplace/i/KarthikKumarArun.forge-git?logo=visualstudiocode)](https://marketplace.visualstudio.com/items?itemName=KarthikKumarArun.forge-git)
 
 JetBrains-quality merge conflict resolution, shelving, and git graph — as a
 VS Code extension. Open source, MIT licensed. Works in VS Code, Cursor,
@@ -21,8 +23,22 @@ Windsurf, and any VS Code fork.
 
 ## Install
 
-For now: clone, `npm install`, `npm run package` to produce a `.vsix`, then
-`code --install-extension forge-*.vsix`. Marketplace publish coming.
+Install from the **VS Code Marketplace**:
+[KarthikKumarArun.forge-git](https://marketplace.visualstudio.com/items?itemName=KarthikKumarArun.forge-git)
+
+Or from the command line:
+
+```sh
+code --install-extension KarthikKumarArun.forge-git
+```
+
+Or build from source:
+
+```sh
+git clone https://github.com/karthikkumararun/forge.git
+cd forge && npm install && npm run package
+code --install-extension forge-git-*.vsix
+```
 
 ## Quick start
 
@@ -48,8 +64,7 @@ Token for cloud sync is stored in VS Code SecretStorage — set it with the
 ## Roadmap
 
 See [system-spec.md](./system-spec.md) §16 for the full phase breakdown.
-Phase 1–3 are implemented; Marketplace publish is the remaining outstanding
-item.
+Phase 1–3 are implemented and published to the Marketplace.
 
 ## Contributing
 
