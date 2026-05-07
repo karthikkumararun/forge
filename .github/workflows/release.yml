@@ -1,0 +1,100 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g. v0.1.0). If empty, uses package.json version.'
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build, package, and publish GitHub Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Resolve version
+        id: ver
+        run: |
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            tag="${GITHUB_REF#refs/tags/}"
+          elif [[ -n "${{ inputs.tag }}" ]]; then
+            tag="${{ inputs.tag }}"
+          else
+            tag="v$(node -p "require('./package.json').version")"
+          fi
+          version="${tag#v}"
+          echo "tag=$tag"        >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Verify package.json matches tag
+        run: |
+          pkg_version="$(node -p "require('./package.json').version")"
+          if [[ "$pkg_version" != "${{ steps.ver.outputs.version }}" ]]; then
+            echo "::error::package.json version ($pkg_version) does not match tag (${{ steps.ver.outputs.version }})"
+            exit 1
+          fi
+
+      - name: Install
+        run: npm install --no-audit --no-fund
+
+      - name: Typecheck
+        run: |
+          npx tsc -p tsconfig.json --noEmit
+          npx tsc -p tsconfig.webview.json --noEmit
+
+      - name: Build
+        run: npm run build
+
+      - name: Smoke
+        run: |
+          npx esbuild scripts/smoke.ts --bundle --platform=node --target=node18 \
+            --external:simple-git --outfile=dist/smoke.js
+          node dist/smoke.js
+
+      - name: Package .vsix
+        run: |
+          npx --yes @vscode/vsce@latest package \
+            --no-dependencies \
+            --out "forge-${{ steps.ver.outputs.version }}.vsix"
+
+      - name: Extract changelog section
+        id: changelog
+        run: |
+          version="${{ steps.ver.outputs.version }}"
+          # Pull section between this version's heading and the next "## "
+          awk -v ver="$version" '
+            $0 ~ "^## \\["ver"\\]" {flag=1; next}
+            flag && /^## \[/ {exit}
+            flag {print}
+          ' CHANGELOG.md > release-notes.md
+          if [[ ! -s release-notes.md ]]; then
+            echo "Release ${version}." > release-notes.md
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: Forge ${{ steps.ver.outputs.tag }}
+          body_path: release-notes.md
+          files: forge-${{ steps.ver.outputs.version }}.vsix
+          draft: false
+          prerelease: false
+          fail_on_unmatched_files: true
