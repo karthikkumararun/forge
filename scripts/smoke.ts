@@ -65,7 +65,8 @@ async function testShelving() {
   const list = await s.listShelves();
   check('shelf listed', list.length === 1 && list[0].meta.displayName === 'my feature!');
   check('shelf branch recorded', list[0].meta.branch === 'main');
-  check('shelf files recorded', list[0].meta.files.includes('a.txt'));
+  check('shelf files recorded', list[0].meta.files.some((f) => f.path === 'a.txt'));
+  check('shelf schema v2', list[0].meta.schemaVersion === 2);
 
   const gi = await fs.readFile(path.join(dir, '.gitignore'), 'utf8');
   check('.forge/ added to .gitignore', gi.includes('.forge/'));
@@ -73,12 +74,15 @@ async function testShelving() {
   const peek = await s.peekShelf(list[0].meta.name);
   check('peekShelf returns patch', peek.includes('MODIFIED'));
 
-  await s.unshelveChanges(list[0].meta.name);
+  await s.unshelveChanges(list[0].meta.name, { keep: false });
   const restored = await fs.readFile(path.join(dir, 'a.txt'), 'utf8');
   check('unshelve restores changes', restored.includes('MODIFIED'));
 
   const list2 = await s.listShelves();
-  check('shelf removed after unshelve', list2.length === 0);
+  check('shelf removed after unshelve+keep:false', list2.length === 0);
+  const trashedAfter = await s.listTrashed();
+  check('shelf moved to trash after unshelve+keep:false', trashedAfter.length === 1);
+  await s.purgeTrash(0);
 
   // partial shelve
   execSync('git checkout -- a.txt', { cwd: dir });
@@ -92,18 +96,26 @@ async function testShelving() {
   const bStill = await fs.readFile(path.join(dir, 'b.txt'), 'utf8');
   check('partial shelve resets only chosen file', !aAfter.includes('modA') && bStill.includes('newfileB'));
   const partialList = await s.listShelves();
-  check('partial shelf lists only a.txt', partialList[0]?.meta.files.length === 1 && partialList[0].meta.files[0] === 'a.txt');
-  await s.deleteShelve(partialList[0].meta.name);
+  check('partial shelf lists only a.txt', partialList[0]?.meta.files.length === 1 && partialList[0].meta.files[0].path === 'a.txt');
+  await s.deleteShelve(partialList[0].meta.name, { hard: true });
   execSync('git checkout -- a.txt', { cwd: dir });
   execSync('git rm -f b.txt', { cwd: dir });
 
   // delete path
 
   await fs.writeFile(path.join(dir, 'a.txt'), 'X\n');
-  await s.shelveChanges('to-delete', '');
+  await s.shelveChanges('to-delete-soft', '');
   const list3 = await s.listShelves();
   await s.deleteShelve(list3[0].meta.name);
-  check('deleteShelve removes', (await s.listShelves()).length === 0);
+  check('deleteShelve soft-removes from active list', (await s.listShelves()).length === 0);
+  check('deleteShelve places in trash', (await s.listTrashed()).length === 1);
+  const trashed = await s.listTrashed();
+  const trashedKey = path.basename(trashed[0].metaPath, '.meta.json');
+  await s.restoreFromTrash(trashedKey);
+  check('restoreFromTrash brings shelf back', (await s.listShelves()).length === 1 && (await s.listTrashed()).length === 0);
+  const restoredItem = (await s.listShelves())[0];
+  await s.deleteShelve(restoredItem.meta.name, { hard: true });
+  check('hard delete removes entirely', (await s.listShelves()).length === 0 && (await s.listTrashed()).length === 0);
 
   await fs.rm(dir, { recursive: true, force: true });
 }
