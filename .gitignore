@@ -7,3 +7,4 @@ dist/
 package-lock.json
 launch.json
 task.json
+.smoke-workspace/

@@ -2,7 +2,7 @@
   "name": "forge-git",
   "displayName": "Forge — Supercharged Git",
   "description": "Supercharged git for VS Code — JetBrains-quality merge editor, shelving, and git graph",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "publisher": "KarthikKumarArun",
   "license": "MIT",
   "icon": "media/forge-icon.png",
@@ -14,62 +14,316 @@
     "vscode": "^1.85.0",
     "node": ">=18"
   },
-  "categories": ["SCM Providers", "Other"],
-  "keywords": ["git", "merge", "shelve", "graph", "diff"],
-  "activationEvents": ["onStartupFinished"],
+  "categories": [
+    "SCM Providers",
+    "Other"
+  ],
+  "keywords": [
+    "git",
+    "merge",
+    "shelve",
+    "graph",
+    "diff"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
-      { "command": "forge.shelveChanges", "title": "Forge: Shelve Current Changes", "icon": "$(archive)" },
-      { "command": "forge.shelvePartial", "title": "Forge: Shelve Selected Files…", "icon": "$(checklist)" },
-      { "command": "forge.unshelveChanges", "title": "Forge: Unshelve", "icon": "$(arrow-down)" },
-      { "command": "forge.deleteShelve", "title": "Forge: Delete Shelf", "icon": "$(trash)" },
-      { "command": "forge.previewShelve", "title": "Forge: Preview Shelf", "icon": "$(eye)" },
-      { "command": "forge.refreshShelves", "title": "Forge: Refresh Shelves", "icon": "$(refresh)" },
-      { "command": "forge.openMergeEditor", "title": "Forge: Open Merge Editor", "icon": "$(git-merge)" },
-      { "command": "forge.openGitGraph", "title": "Forge: Open Git Graph", "icon": "$(git-branch)" },
-      { "command": "forge.mergeEditor.nextConflict", "title": "Forge: Next Conflict" },
-      { "command": "forge.mergeEditor.prevConflict", "title": "Forge: Previous Conflict" },
-      { "command": "forge.mergeEditor.acceptYours", "title": "Forge: Accept Yours" },
-      { "command": "forge.mergeEditor.acceptTheirs", "title": "Forge: Accept Theirs" },
-      { "command": "forge.mergeEditor.save", "title": "Forge: Save Merge Result" },
-      { "command": "forge.toggleBlame", "title": "Forge: Toggle Inline Blame" },
-      { "command": "forge.startInteractiveRebase", "title": "Forge: Interactive Rebase…" },
-      { "command": "forge.abortRebase", "title": "Forge: Abort Rebase" },
-      { "command": "forge.shelves.cloudPush", "title": "Forge: Push Shelves to Cloud (Gist)" },
-      { "command": "forge.shelves.cloudPull", "title": "Forge: Pull Shelves from Cloud (Gist)" },
-      { "command": "forge.shelves.setCloudToken", "title": "Forge: Set Gist Token" }
+      {
+        "command": "forge.shelveChanges",
+        "title": "Forge: Shelve Current Changes",
+        "icon": "$(archive)"
+      },
+      {
+        "command": "forge.shelvePartial",
+        "title": "Forge: Shelve Selected Files…",
+        "icon": "$(checklist)"
+      },
+      {
+        "command": "forge.unshelveChanges",
+        "title": "Forge: Unshelve",
+        "icon": "$(arrow-down)"
+      },
+      {
+        "command": "forge.deleteShelve",
+        "title": "Forge: Delete Shelf",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "forge.previewShelve",
+        "title": "Forge: Preview Shelf",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "forge.refreshShelves",
+        "title": "Forge: Refresh Shelves",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "forge.shelf.openFileDiff",
+        "title": "Forge: Open Shelf File Diff",
+        "icon": "$(diff)"
+      },
+      {
+        "command": "forge.shelf.unshelveAndRemove",
+        "title": "Forge: Unshelve & Remove",
+        "icon": "$(arrow-down)"
+      },
+      {
+        "command": "forge.shelf.unshelvePartial",
+        "title": "Forge: Unshelve Selected Files…",
+        "icon": "$(checklist)"
+      },
+      {
+        "command": "forge.shelf.unshelveFile",
+        "title": "Forge: Unshelve This File",
+        "icon": "$(arrow-down)"
+      },
+      {
+        "command": "forge.shelf.restore",
+        "title": "Forge: Restore Shelf",
+        "icon": "$(history)"
+      },
+      {
+        "command": "forge.shelf.purgeOne",
+        "title": "Forge: Delete Permanently",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "forge.shelf.purgeAll",
+        "title": "Forge: Empty Recently Deleted",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "forge.shelf.rename",
+        "title": "Forge: Rename Shelf",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "forge.shelf.editDescription",
+        "title": "Forge: Edit Description",
+        "icon": "$(note)"
+      },
+      {
+        "command": "forge.shelf.autoShelf",
+        "title": "Forge: Auto-shelf Working Tree",
+        "icon": "$(save)"
+      },
+      {
+        "command": "forge.shelf.shelveHunks",
+        "title": "Forge: Shelve Hunks…",
+        "icon": "$(diff-multiple)"
+      },
+      {
+        "command": "forge.shelf.unshelveHunks",
+        "title": "Forge: Unshelve Hunks…",
+        "icon": "$(diff-multiple)"
+      },
+      {
+        "command": "forge.openMergeEditor",
+        "title": "Forge: Open Merge Editor",
+        "icon": "$(git-merge)"
+      },
+      {
+        "command": "forge.openGitGraph",
+        "title": "Forge: Open Git Graph",
+        "icon": "$(git-branch)"
+      },
+      {
+        "command": "forge.mergeEditor.nextConflict",
+        "title": "Forge: Next Conflict"
+      },
+      {
+        "command": "forge.mergeEditor.prevConflict",
+        "title": "Forge: Previous Conflict"
+      },
+      {
+        "command": "forge.mergeEditor.acceptYours",
+        "title": "Forge: Accept Yours"
+      },
+      {
+        "command": "forge.mergeEditor.acceptTheirs",
+        "title": "Forge: Accept Theirs"
+      },
+      {
+        "command": "forge.mergeEditor.save",
+        "title": "Forge: Save Merge Result"
+      },
+      {
+        "command": "forge.toggleBlame",
+        "title": "Forge: Toggle Inline Blame"
+      },
+      {
+        "command": "forge.startInteractiveRebase",
+        "title": "Forge: Interactive Rebase…"
+      },
+      {
+        "command": "forge.abortRebase",
+        "title": "Forge: Abort Rebase"
+      },
+      {
+        "command": "forge.shelves.cloudPush",
+        "title": "Forge: Push Shelves to Cloud (Gist)"
+      },
+      {
+        "command": "forge.shelves.cloudPull",
+        "title": "Forge: Pull Shelves from Cloud (Gist)"
+      },
+      {
+        "command": "forge.shelves.setCloudToken",
+        "title": "Forge: Set Gist Token"
+      }
     ],
     "keybindings": [
-      { "command": "forge.mergeEditor.nextConflict", "key": "alt+down", "when": "activeWebviewPanelId == 'forge.mergeEditor'" },
-      { "command": "forge.mergeEditor.prevConflict", "key": "alt+up", "when": "activeWebviewPanelId == 'forge.mergeEditor'" },
-      { "command": "forge.mergeEditor.acceptYours", "key": "alt+left", "when": "activeWebviewPanelId == 'forge.mergeEditor'" },
-      { "command": "forge.mergeEditor.acceptTheirs", "key": "alt+right", "when": "activeWebviewPanelId == 'forge.mergeEditor'" },
-      { "command": "forge.mergeEditor.save", "key": "ctrl+s", "mac": "cmd+s", "when": "activeWebviewPanelId == 'forge.mergeEditor'" }
+      {
+        "command": "forge.mergeEditor.nextConflict",
+        "key": "alt+down",
+        "when": "activeWebviewPanelId == 'forge.mergeEditor'"
+      },
+      {
+        "command": "forge.mergeEditor.prevConflict",
+        "key": "alt+up",
+        "when": "activeWebviewPanelId == 'forge.mergeEditor'"
+      },
+      {
+        "command": "forge.mergeEditor.acceptYours",
+        "key": "alt+left",
+        "when": "activeWebviewPanelId == 'forge.mergeEditor'"
+      },
+      {
+        "command": "forge.mergeEditor.acceptTheirs",
+        "key": "alt+right",
+        "when": "activeWebviewPanelId == 'forge.mergeEditor'"
+      },
+      {
+        "command": "forge.mergeEditor.save",
+        "key": "ctrl+s",
+        "mac": "cmd+s",
+        "when": "activeWebviewPanelId == 'forge.mergeEditor'"
+      }
     ],
     "viewsContainers": {
       "activitybar": [
-        { "id": "forge", "title": "Forge", "icon": "media/forge-icon.svg" }
+        {
+          "id": "forge",
+          "title": "Forge",
+          "icon": "media/forge-icon.svg"
+        }
       ]
     },
     "views": {
       "forge": [
-        { "id": "forge-shelves", "name": "Shelves", "icon": "$(archive)", "contextualTitle": "Forge Shelves" }
+        {
+          "id": "forge-shelves",
+          "name": "Shelves",
+          "icon": "$(archive)",
+          "contextualTitle": "Forge Shelves"
+        }
       ]
     },
     "menus": {
       "view/title": [
-        { "command": "forge.shelveChanges", "when": "view == forge-shelves", "group": "navigation" },
-        { "command": "forge.shelvePartial", "when": "view == forge-shelves", "group": "navigation" },
-        { "command": "forge.refreshShelves", "when": "view == forge-shelves", "group": "navigation" }
+        {
+          "command": "forge.shelveChanges",
+          "when": "view == forge-shelves",
+          "group": "navigation"
+        },
+        {
+          "command": "forge.shelvePartial",
+          "when": "view == forge-shelves",
+          "group": "navigation"
+        },
+        {
+          "command": "forge.refreshShelves",
+          "when": "view == forge-shelves",
+          "group": "navigation"
+        },
+        {
+          "command": "forge.shelf.autoShelf",
+          "when": "view == forge-shelves",
+          "group": "navigation"
+        },
+        {
+          "command": "forge.shelf.shelveHunks",
+          "when": "view == forge-shelves",
+          "group": "navigation"
+        }
       ],
       "view/item/context": [
-        { "command": "forge.unshelveChanges", "when": "viewItem == shelf", "group": "inline" },
-        { "command": "forge.previewShelve", "when": "viewItem == shelf", "group": "inline" },
-        { "command": "forge.deleteShelve", "when": "viewItem == shelf", "group": "inline" }
+        {
+          "command": "forge.unshelveChanges",
+          "when": "viewItem == shelf",
+          "group": "inline@1"
+        },
+        {
+          "command": "forge.previewShelve",
+          "when": "viewItem == shelf",
+          "group": "inline@2"
+        },
+        {
+          "command": "forge.deleteShelve",
+          "when": "viewItem == shelf",
+          "group": "inline@3"
+        },
+        {
+          "command": "forge.shelf.unshelvePartial",
+          "when": "viewItem == shelf",
+          "group": "1_unshelve@1"
+        },
+        {
+          "command": "forge.shelf.unshelveAndRemove",
+          "when": "viewItem == shelf",
+          "group": "1_unshelve@2"
+        },
+        {
+          "command": "forge.shelf.unshelveHunks",
+          "when": "viewItem == shelf",
+          "group": "1_unshelve@3"
+        },
+        {
+          "command": "forge.shelf.rename",
+          "when": "viewItem == shelf",
+          "group": "2_modify@1"
+        },
+        {
+          "command": "forge.shelf.editDescription",
+          "when": "viewItem == shelf",
+          "group": "2_modify@2"
+        },
+        {
+          "command": "forge.shelf.openFileDiff",
+          "when": "viewItem == shelf-file",
+          "group": "inline@1"
+        },
+        {
+          "command": "forge.shelf.unshelveFile",
+          "when": "viewItem == shelf-file",
+          "group": "inline@2"
+        },
+        {
+          "command": "forge.shelf.restore",
+          "when": "viewItem == shelf-trashed",
+          "group": "inline@1"
+        },
+        {
+          "command": "forge.shelf.purgeOne",
+          "when": "viewItem == shelf-trashed",
+          "group": "inline@2"
+        },
+        {
+          "command": "forge.shelf.purgeAll",
+          "when": "viewItem == shelf-trash-root",
+          "group": "inline"
+        }
       ],
       "editor/title": [
-        { "command": "forge.openMergeEditor", "when": "resourceScheme == file", "group": "navigation" }
+        {
+          "command": "forge.openMergeEditor",
+          "when": "resourceScheme == file",
+          "group": "navigation"
+        }
       ]
     },
     "configuration": {
@@ -99,6 +353,36 @@
           "type": "string",
           "default": "",
           "description": "GitHub gist ID used for shelving cloud sync (set after first push)"
+        },
+        "forge.shelving.trashTtlDays": {
+          "type": "number",
+          "default": 0,
+          "description": "Days to retain shelves in Recently Deleted before auto-purge. 0 = keep indefinitely (JetBrains-style)."
+        },
+        "forge.shelving.defaultUnshelveKeepShelf": {
+          "type": "boolean",
+          "default": true,
+          "description": "When unshelving from the inline button, keep the shelf after applying. Use 'Unshelve & Remove' to remove."
+        },
+        "forge.shelving.confirmHardDelete": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show a confirmation prompt before permanently deleting a shelf."
+        },
+        "forge.shelving.maxRecentDeleted": {
+          "type": "number",
+          "default": 50,
+          "description": "Soft cap on the number of trashed shelves shown in the tree (older entries remain on disk)."
+        },
+        "forge.shelving.autoShelf": {
+          "type": "string",
+          "enum": [
+            "off",
+            "risky-ops",
+            "always"
+          ],
+          "default": "risky-ops",
+          "description": "Automatically shelve dirty changes before risky Forge-initiated operations (branch switch, pull, merge, rebase)."
         }
       }
     }
@@ -108,23 +392,25 @@
     "watch": "node esbuild.js --watch",
     "package": "vsce package",
     "lint": "eslint src --ext ts,tsx",
-    "test": "node ./dist/test/runTest.js"
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
-    "simple-git": "^3.22.0",
-    "diff-match-patch": "^1.0.5"
+    "diff-match-patch": "^1.0.5",
+    "simple-git": "^3.22.0"
   },
   "devDependencies": {
-    "@types/vscode": "^1.85.0",
+    "@types/d3": "^7.0.0",
+    "@types/diff-match-patch": "^1.0.36",
     "@types/node": "^20.0.0",
     "@types/react": "^18.0.0",
     "@types/react-dom": "^18.0.0",
-    "@types/d3": "^7.0.0",
-    "@types/diff-match-patch": "^1.0.36",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "@types/vscode": "^1.85.0",
     "d3": "^7.9.0",
     "esbuild": "^0.20.0",
-    "typescript": "^5.3.0"
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "typescript": "^5.3.0",
+    "vitest": "^4.1.5"
   }
 }
