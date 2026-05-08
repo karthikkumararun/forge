@@ -48,7 +48,18 @@ const rebaseConfig = {
   logLevel: 'info',
 };
 
-const configs = [extensionConfig, mergeEditorConfig, gitGraphConfig, rebaseConfig];
+const hunkPickerConfig = {
+  entryPoints: ['src/webviews/hunkPicker/index.tsx'],
+  bundle: true,
+  outfile: 'dist/webviews/hunkPicker/index.js',
+  format: 'iife',
+  platform: 'browser',
+  target: 'es2020',
+  sourcemap: true,
+  logLevel: 'info',
+};
+
+const configs = [extensionConfig, mergeEditorConfig, gitGraphConfig, rebaseConfig, hunkPickerConfig];
 
 (async () => {
   try {

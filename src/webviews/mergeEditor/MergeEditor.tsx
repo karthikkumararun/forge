@@ -237,9 +237,9 @@ export const MergeEditor: React.FC = () => {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', borderBottom: '1px solid var(--vscode-focusBorder)' }}>
-        <SidePane title="● YOURS (current)" content={init.ours} language={init.language} bg="rgba(86,156,214,0.08)" chunks={chunks} side="ours" onAccept={accept} onEdit={startEdit} chosen={chosen} />
-        <SidePane title="◎ BASE (common ancestor)" content={init.base} language={init.language} bg="rgba(255,255,255,0.02)" chunks={chunks} side="base" onAccept={accept} onEdit={startEdit} chosen={chosen} />
-        <SidePane title="● THEIRS (incoming)" content={init.theirs} language={init.language} bg="rgba(181,206,168,0.08)" chunks={chunks} side="theirs" onAccept={accept} onEdit={startEdit} chosen={chosen} />
+        <SidePane title="● YOURS (current)" content={init.ours} language={init.language} bg="rgba(86,156,214,0.08)" chunks={chunks} side="ours" onAccept={accept} onEdit={startEdit} chosen={chosen} currentIdx={currentIdx} />
+        <SidePane title="◎ BASE (common ancestor)" content={init.base} language={init.language} bg="rgba(255,255,255,0.02)" chunks={chunks} side="base" onAccept={accept} onEdit={startEdit} chosen={chosen} currentIdx={currentIdx} />
+        <SidePane title="● THEIRS (incoming)" content={init.theirs} language={init.language} bg="rgba(181,206,168,0.08)" chunks={chunks} side="theirs" onAccept={accept} onEdit={startEdit} chosen={chosen} currentIdx={currentIdx} />
       </div>
 
       <div>
@@ -307,35 +307,36 @@ function SidePane(props: {
   onAccept: (id: string, side: 'ours' | 'theirs') => void;
   onEdit: (id: string, side: 'ours' | 'theirs') => void;
   chosen: Map<string, 'ours' | 'theirs'>;
+  currentIdx: number;
 }) {
+  const active = props.chunks[props.currentIdx];
+  const isChosen = active && props.side !== 'base' && props.chosen.get(active.id) === props.side;
+  const showActions = props.side !== 'base' && !!active;
   return (
-    <div style={{ display: 'grid', gridTemplateRows: '24px 1fr', borderRight: '1px solid var(--vscode-focusBorder)', background: props.bg, position: 'relative' }}>
-      <div style={{ fontSize: 11, padding: '4px 8px', opacity: 0.85, borderBottom: '1px solid var(--vscode-focusBorder)' }}>{props.title}</div>
-      <div style={{ position: 'relative' }}>
+    <div style={{ display: 'grid', gridTemplateRows: showActions ? '24px 32px 1fr' : '24px 1fr', borderRight: '1px solid var(--vscode-focusBorder)', background: props.bg }}>
+      <div style={{ fontSize: 11, padding: '4px 8px', opacity: 0.85, borderBottom: '1px solid var(--vscode-focusBorder)', display: 'flex', justifyContent: 'space-between' }}>
+        <span>{props.title}</span>
+        {props.chunks.length > 0 && <span style={{ opacity: 0.7 }}>conflict {props.currentIdx + 1}/{props.chunks.length}</span>}
+      </div>
+      {showActions && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px', borderBottom: '1px solid var(--vscode-focusBorder)' }}>
+          <button
+            onClick={() => props.onAccept(active.id, props.side as 'ours' | 'theirs')}
+            style={{ ...btnStyle, opacity: isChosen ? 1 : 0.9, fontSize: 11 }}
+            title={`Accept ${props.side} for ${active.id}`}
+          >
+            {isChosen ? '✓ ' : ''}Accept {props.side === 'ours' ? 'Yours' : 'Theirs'}
+          </button>
+          <button
+            onClick={() => props.onEdit(active.id, props.side as 'ours' | 'theirs')}
+            style={{ ...btnStyle, fontSize: 11 }}
+            title={`Edit ${props.side} for ${active.id}`}
+          >Edit</button>
+          <span style={{ marginLeft: 'auto', opacity: 0.6, fontSize: 10 }}>{active.id}</span>
+        </div>
+      )}
+      <div style={{ position: 'relative', minHeight: 0 }}>
         <PaneEditor value={props.content} language={props.language} readOnly={true} />
-        {props.side !== 'base' && (
-          <div style={{ position: 'absolute', top: 4, right: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {props.chunks.map((c) => {
-              const isChosen = props.chosen.get(c.id) === props.side;
-              return (
-                <div key={c.id} style={{ display: 'flex', gap: 4 }}>
-                  <button
-                    onClick={() => props.onAccept(c.id, props.side as 'ours' | 'theirs')}
-                    style={{ ...btnStyle, opacity: isChosen ? 1 : 0.85, fontSize: 10 }}
-                    title={`Accept ${props.side} for ${c.id}`}
-                  >
-                    {isChosen ? '✓ ' : ''}Accept {props.side === 'ours' ? 'Yours' : 'Theirs'} ({c.id})
-                  </button>
-                  <button
-                    onClick={() => props.onEdit(c.id, props.side as 'ours' | 'theirs')}
-                    style={{ ...btnStyle, fontSize: 10 }}
-                    title={`Edit ${props.side} for ${c.id}`}
-                  >Edit</button>
-                </div>
-              );
-            })}
-          </div>
-        )}
       </div>
     </div>
   );

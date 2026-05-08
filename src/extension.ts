@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
 import { GitService } from './git/gitService';
 import { ShelvingService } from './shelving/shelvingService';
-import { ShelvingProvider, ShelfTreeItem, ShelfPreviewContentProvider } from './shelving/shelvingProvider';
+import { ShelvingProvider, ShelfTreeItem, ShelfPreviewContentProvider, ShelfFileContentProvider, ShelfFileItem, TrashedShelfItem, buildShelfFileUri } from './shelving/shelvingProvider';
+import { HunkPickerProvider } from './shelving/hunkPickerProvider';
 import { MergeEditorProvider } from './mergeEditor/mergeEditorProvider';
 import { GitGraphProvider } from './gitGraph/gitGraphProvider';
 import { ShowContentProvider } from './git/showContentProvider';
@@ -10,6 +11,7 @@ import { RebaseService } from './rebase/rebaseService';
 import { RebaseProvider } from './rebase/rebaseProvider';
 import { CloudSync } from './shelving/cloudSync';
 import { hasConflictMarkers } from './mergeEditor/conflictParser';
+import { UnshelveResult } from './shelving/types';
 
 const CLOUD_TOKEN_KEY = 'forge.cloud.gistToken';
 
@@ -30,15 +32,34 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const shelvingService = new ShelvingService(gitService, root);
   const shelvingProvider = new ShelvingProvider(shelvingService);
   const previewProvider = new ShelfPreviewContentProvider(shelvingService);
+  const shelfFileProvider = new ShelfFileContentProvider(shelvingService);
   const mergeEditorProvider = new MergeEditorProvider(gitService, root);
   const gitGraphProvider = new GitGraphProvider(gitService);
   const rebaseService = new RebaseService(gitService, root);
   const rebaseProvider = new RebaseProvider(rebaseService);
   const cloudSync = new CloudSync(shelvingService, root);
+  const hunkPickerProvider = new HunkPickerProvider(shelvingService);
 
   const blameEnabled = vscode.workspace.getConfiguration('forge.blame').get<boolean>('enabled', true);
   const blameProvider = blameEnabled ? new BlameProvider(gitService, root) : undefined;
   if (blameProvider) context.subscriptions.push(blameProvider);
+
+  const reportUnshelve = async (r: UnshelveResult, label: string, removed: boolean = false): Promise<void> => {
+    if (r.conflicted.length > 0) {
+      const choice = await vscode.window.showWarningMessage(
+        `Forge: ${r.conflicted.length} conflict(s) while unshelving "${label}". Resolve via merge editor.`,
+        'Open Merge Editor', 'Dismiss'
+      );
+      if (choice === 'Open Merge Editor') {
+        const first = r.conflicted[0];
+        const uri = vscode.Uri.file(`${root}/${first}`);
+        await vscode.commands.executeCommand('forge.openMergeEditor', uri);
+      }
+      return;
+    }
+    const tail = removed ? ' & removed' : (r.shelfRemaining ? '' : ' — shelf trashed');
+    vscode.window.showInformationMessage(`✓ Unshelved${tail}: ${label} (${r.applied.length} file(s))`);
+  };
 
   const requireCloud = async (): Promise<{ token: string; gistId?: string } | undefined> => {
     const token = await context.secrets.get(CLOUD_TOKEN_KEY);
@@ -53,6 +74,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   context.subscriptions.push(
     vscode.window.registerTreeDataProvider('forge-shelves', shelvingProvider),
     vscode.workspace.registerTextDocumentContentProvider(ShelfPreviewContentProvider.scheme, previewProvider),
+    vscode.workspace.registerTextDocumentContentProvider(ShelfFileContentProvider.scheme, shelfFileProvider),
     vscode.workspace.registerTextDocumentContentProvider(ShowContentProvider.scheme, new ShowContentProvider(gitService)),
   );
 
@@ -126,23 +148,169 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }),
 
     vscode.commands.registerCommand('forge.unshelveChanges', async (item: ShelfTreeItem) => {
+      const cfg = vscode.workspace.getConfiguration('forge.shelving');
+      const defaultKeep = cfg.get<boolean>('defaultUnshelveKeepShelf', true);
       try {
-        await shelvingService.unshelveChanges(item.meta.name);
+        const r = await shelvingService.unshelveChanges(item.meta.name, { keep: defaultKeep });
         shelvingProvider.refresh();
-        vscode.window.showInformationMessage(`✓ Unshelved: ${item.meta.displayName}`);
+        await reportUnshelve(r, item.meta.displayName);
+      } catch (e: any) {
+        vscode.window.showErrorMessage(`Forge: ${e?.message ?? String(e)}`);
+      }
+    }),
+
+    vscode.commands.registerCommand('forge.shelf.unshelveAndRemove', async (item: ShelfTreeItem) => {
+      try {
+        const r = await shelvingService.unshelveChanges(item.meta.name, { keep: false });
+        shelvingProvider.refresh();
+        await reportUnshelve(r, item.meta.displayName, true);
+      } catch (e: any) {
+        vscode.window.showErrorMessage(`Forge: ${e?.message ?? String(e)}`);
+      }
+    }),
+
+    vscode.commands.registerCommand('forge.shelf.unshelvePartial', async (item: ShelfTreeItem) => {
+      const picks = await vscode.window.showQuickPick(
+        item.meta.files.map((f) => ({ label: f.path, description: f.status, picked: true, file: f })),
+        { canPickMany: true, placeHolder: `Pick files to unshelve from "${item.meta.displayName}"` }
+      );
+      if (!picks || picks.length === 0) return;
+      const removeAfter = await vscode.window.showQuickPick(
+        [
+          { label: 'Keep in shelf', value: true },
+          { label: 'Remove from shelf after apply', value: false },
+        ],
+        { placeHolder: 'After unshelve…' }
+      );
+      if (!removeAfter) return;
+      try {
+        const r = await shelvingService.unshelveChanges(item.meta.name, {
+          files: picks.map((p) => p.file.path),
+          keep: removeAfter.value,
+        });
+        shelvingProvider.refresh();
+        await reportUnshelve(r, item.meta.displayName);
+      } catch (e: any) {
+        vscode.window.showErrorMessage(`Forge: ${e?.message ?? String(e)}`);
+      }
+    }),
+
+    vscode.commands.registerCommand('forge.shelf.unshelveFile', async (fileItem: ShelfFileItem) => {
+      try {
+        const r = await shelvingService.unshelveChanges(fileItem.shelfName, { files: [fileItem.entry.path], keep: true });
+        shelvingProvider.refresh();
+        await reportUnshelve(r, fileItem.entry.path);
+      } catch (e: any) {
+        vscode.window.showErrorMessage(`Forge: ${e?.message ?? String(e)}`);
+      }
+    }),
+
+    vscode.commands.registerCommand('forge.shelf.rename', async (item: ShelfTreeItem) => {
+      const v = await vscode.window.showInputBox({ prompt: 'New shelf name', value: item.meta.displayName });
+      if (!v) return;
+      try {
+        await shelvingService.renameShelf(item.meta.name, v);
+        shelvingProvider.refresh();
+      } catch (e: any) {
+        vscode.window.showErrorMessage(`Forge: ${e?.message ?? String(e)}`);
+      }
+    }),
+
+    vscode.commands.registerCommand('forge.shelf.editDescription', async (item: ShelfTreeItem) => {
+      const v = await vscode.window.showInputBox({ prompt: 'Shelf description', value: item.meta.description });
+      if (v === undefined) return;
+      try {
+        await shelvingService.setShelfDescription(item.meta.name, v);
+        shelvingProvider.refresh();
+      } catch (e: any) {
+        vscode.window.showErrorMessage(`Forge: ${e?.message ?? String(e)}`);
+      }
+    }),
+
+    vscode.commands.registerCommand('forge.shelf.shelveHunks', async () => {
+      await hunkPickerProvider.open(context, {
+        mode: 'shelve',
+        title: 'Shelve Hunks',
+        onShelved: () => shelvingProvider.refresh(),
+      });
+    }),
+
+    vscode.commands.registerCommand('forge.shelf.unshelveHunks', async (item: ShelfTreeItem) => {
+      await hunkPickerProvider.open(context, {
+        mode: 'unshelve',
+        shelfName: item.meta.name,
+        title: `Unshelve Hunks: ${item.meta.displayName}`,
+        onUnshelved: async (r, _label) => {
+          shelvingProvider.refresh();
+          await reportUnshelve(r, item.meta.displayName);
+        },
+      });
+    }),
+
+    vscode.commands.registerCommand('forge.shelf.autoShelf', async () => {
+      try {
+        const name = await shelvingService.autoShelf('manual', 'manual snapshot');
+        if (!name) {
+          vscode.window.showInformationMessage('Forge: No changes to shelve');
+          return;
+        }
+        shelvingProvider.refresh();
+        vscode.window.showInformationMessage(`✓ Auto-shelved: ${name}`);
       } catch (e: any) {
         vscode.window.showErrorMessage(`Forge: ${e?.message ?? String(e)}`);
       }
     }),
 
     vscode.commands.registerCommand('forge.deleteShelve', async (item: ShelfTreeItem) => {
-      const confirm = await vscode.window.showWarningMessage(
-        `Delete shelf "${item.meta.displayName}"?`, 'Delete', 'Cancel'
+      const cfg = vscode.workspace.getConfiguration('forge.shelving');
+      const confirmHard = cfg.get<boolean>('confirmHardDelete', true);
+      const choice = await vscode.window.showWarningMessage(
+        `Delete shelf "${item.meta.displayName}"?`,
+        { modal: false },
+        'Move to Recently Deleted', 'Delete Permanently'
       );
-      if (confirm !== 'Delete') return;
+      if (!choice) return;
+      const hard = choice === 'Delete Permanently';
+      if (hard && confirmHard) {
+        const c2 = await vscode.window.showWarningMessage(`Permanently delete "${item.meta.displayName}"? This cannot be undone.`, 'Delete', 'Cancel');
+        if (c2 !== 'Delete') return;
+      }
       try {
-        await shelvingService.deleteShelve(item.meta.name);
+        await shelvingService.deleteShelve(item.meta.name, { hard });
         shelvingProvider.refresh();
+      } catch (e: any) {
+        vscode.window.showErrorMessage(`Forge: ${e?.message ?? String(e)}`);
+      }
+    }),
+
+    vscode.commands.registerCommand('forge.shelf.restore', async (item: TrashedShelfItem) => {
+      try {
+        await shelvingService.restoreFromTrash(item.trashedName);
+        shelvingProvider.refresh();
+        vscode.window.showInformationMessage(`✓ Restored: ${item.item.meta.displayName}`);
+      } catch (e: any) {
+        vscode.window.showErrorMessage(`Forge: ${e?.message ?? String(e)}`);
+      }
+    }),
+
+    vscode.commands.registerCommand('forge.shelf.purgeOne', async (item: TrashedShelfItem) => {
+      const c = await vscode.window.showWarningMessage(`Permanently delete "${item.item.meta.displayName}"?`, 'Delete', 'Cancel');
+      if (c !== 'Delete') return;
+      try {
+        await shelvingService.purgeOneTrashed(item.trashedName);
+        shelvingProvider.refresh();
+      } catch (e: any) {
+        vscode.window.showErrorMessage(`Forge: ${e?.message ?? String(e)}`);
+      }
+    }),
+
+    vscode.commands.registerCommand('forge.shelf.purgeAll', async () => {
+      const c = await vscode.window.showWarningMessage('Permanently delete all trashed shelves?', 'Delete All', 'Cancel');
+      if (c !== 'Delete All') return;
+      try {
+        const n = await shelvingService.purgeTrash(0);
+        shelvingProvider.refresh();
+        vscode.window.showInformationMessage(`✓ Purged ${n} shelf(s)`);
       } catch (e: any) {
         vscode.window.showErrorMessage(`Forge: ${e?.message ?? String(e)}`);
       }
@@ -156,6 +324,23 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }),
 
     vscode.commands.registerCommand('forge.refreshShelves', () => shelvingProvider.refresh()),
+
+    vscode.commands.registerCommand('forge.shelf.openFileDiff', async (shelfNameOrItem: string | ShelfFileItem, maybeFile?: string) => {
+      let shelfName: string;
+      let filePath: string;
+      if (typeof shelfNameOrItem === 'string') {
+        shelfName = shelfNameOrItem;
+        filePath = maybeFile ?? '';
+      } else {
+        shelfName = shelfNameOrItem.shelfName;
+        filePath = shelfNameOrItem.entry.path;
+      }
+      if (!shelfName || !filePath) return;
+      const baseUri = buildShelfFileUri(shelfName, 'base', filePath);
+      const shelvedUri = buildShelfFileUri(shelfName, 'shelved', filePath);
+      const title = `${filePath} (shelf: ${shelfName})`;
+      await vscode.commands.executeCommand('vscode.diff', baseUri, shelvedUri, title, { preview: true });
+    }),
 
     vscode.commands.registerCommand('forge.openMergeEditor', (uri?: vscode.Uri) => mergeEditorProvider.open(context, uri)),
 
@@ -216,6 +401,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       }
     }),
   );
+
+  const ttlDays = vscode.workspace.getConfiguration('forge.shelving').get<number>('trashTtlDays', 0);
+  if (ttlDays && ttlDays > 0) {
+    shelvingService.purgeTrash(ttlDays).then((n) => {
+      if (n > 0) shelvingProvider.refresh();
+    }).catch(() => {});
+  }
 
   if (!context.globalState.get('forge.welcomed')) {
     vscode.window.showInformationMessage(

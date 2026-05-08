@@ -62,6 +62,9 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Unit tests (vitest)
+        run: npm test
+
       - name: Smoke
         run: |
           npx esbuild scripts/smoke.ts --bundle --platform=node --target=node18 \

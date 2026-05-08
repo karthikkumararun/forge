@@ -71,8 +71,12 @@ export class GitService {
     await this.git.checkout(['--', '.']);
   }
 
-  async applyPatch(patchPath: string): Promise<void> {
-    await this.git.raw(['apply', patchPath]);
+  async applyPatch(patchPath: string, extraArgs: string[] = []): Promise<void> {
+    await this.git.raw(['apply', ...extraArgs, patchPath]);
+  }
+
+  async applyPatch3Way(patchPath: string): Promise<void> {
+    await this.git.raw(['apply', '--3way', patchPath]);
   }
 
   async showFileAtIndex(index: 1 | 2 | 3, relPath: string): Promise<string> {
