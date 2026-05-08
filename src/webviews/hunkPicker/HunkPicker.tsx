@@ -122,6 +122,14 @@ export const HunkPicker: React.FC = () => {
 
   const cancel = () => vscode.postMessage({ type: 'cancel' });
 
+  const lineStyle = (tag: string): React.CSSProperties => ({
+    background:
+      tag === '+' ? 'var(--vscode-diffEditor-insertedLineBackground, rgba(108,198,68,0.18))' :
+      tag === '-' ? 'var(--vscode-diffEditor-removedLineBackground, rgba(203,36,49,0.18))' :
+      'transparent',
+    display: 'block',
+  });
+
   const styles: Record<string, React.CSSProperties> = {
     page: { fontFamily: 'var(--vscode-font-family)', color: 'var(--vscode-foreground)', padding: 12 },
     header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, gap: 12 },
@@ -136,13 +144,6 @@ export const HunkPicker: React.FC = () => {
     hunk: { borderTop: '1px solid var(--vscode-panel-border)', padding: '6px 8px 4px 28px', display: 'flex', gap: 8 },
     hunkBody: { flex: 1, fontFamily: 'var(--vscode-editor-font-family)', fontSize: 11, whiteSpace: 'pre', overflowX: 'auto', margin: 0 },
     hunkHeader: { color: 'var(--vscode-descriptionForeground)', marginBottom: 2 },
-    line: (tag: string): React.CSSProperties => ({
-      background:
-        tag === '+' ? 'var(--vscode-diffEditor-insertedLineBackground, rgba(108,198,68,0.18))' :
-        tag === '-' ? 'var(--vscode-diffEditor-removedLineBackground, rgba(203,36,49,0.18))' :
-        'transparent',
-      display: 'block',
-    }),
     actions: { display: 'flex', gap: 8, marginTop: 12, alignItems: 'center', flexWrap: 'wrap' },
     btn: { background: 'var(--vscode-button-background)', color: 'var(--vscode-button-foreground)', border: 0, padding: '6px 12px', cursor: 'pointer', borderRadius: 2, fontSize: 12 },
     btnSecondary: { background: 'var(--vscode-button-secondaryBackground)', color: 'var(--vscode-button-secondaryForeground)', border: 0, padding: '6px 12px', cursor: 'pointer', borderRadius: 2, fontSize: 12 },
@@ -162,7 +163,7 @@ export const HunkPicker: React.FC = () => {
         {'\n'}
         {body.map((ln, i) => {
           const tag = ln[0] ?? ' ';
-          return <span key={i} style={styles.line(tag)}>{ln}{'\n'}</span>;
+          return <span key={i} style={lineStyle(tag)}>{ln}{'\n'}</span>;
         })}
       </pre>
     );
